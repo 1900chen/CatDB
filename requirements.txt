@@ -1,0 +1,4 @@
+aiohttp>=3.8.0
+pyautogui>=0.9.53
+pyperclip>=1.8.2
+pynput>=1.7.6
