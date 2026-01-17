@@ -270,7 +270,7 @@ HTML_PAGE = '''<!DOCTYPE html>
             
             background-attachment: local;
             /* 调整背景线：让线位于行高偏下的位置，从而让文字看起来贴着线 */
-            background-position: 0 8px; 
+            background-position: 0 -4px; 
             caret-color: var(--text-main);
         }
         textarea::placeholder { color: #D7CCC8; font-size: 20px; }
