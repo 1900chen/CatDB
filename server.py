@@ -31,6 +31,8 @@ client_configs = {}
 synced_text = ""
 main_loop = None
 typing_in_progress = False
+rebase_triggered = False  # 标记是否已触发增量模式，避免重复触发
+pending_strip_punctuation = False  # 标记下次输入是否需要去除开头标点
 
 # 核心 HTML/CSS 代码
 HTML_PAGE = '''<!DOCTYPE html>
@@ -381,7 +383,8 @@ HTML_PAGE = '''<!DOCTYPE html>
                 <li>点击横线纸，用语音输入法打字。</li>
                 <li>猫猫敲键盘时，字就飞到电脑上了。</li>
                 <li>点 <b>清空</b> 按钮或手机 <b>单击回车/换行</b> 或者电脑<b>F9</b>都可以清空。</li>
-                <li>电脑输入后，会启动增量模式，前面的字不会输入。</li>
+                <li>电脑输入后，启动一次增量同步：先前输入的文本不会再被系统发送，可以理解为软清空。</li>
+                <li>设置里的选项：1.发送延迟——文字多久不变化后发送到电脑（输入法有自动纠错，所以不要太短）2.自动清空——不再有输入后多久执行清空（0禁用）3.检测电脑键盘——勾选时，电脑有输入则启动增量模式。</li>
             </ul>
             <button class="modal-btn" onclick="closeModal('helpModal')">明白啦</button>
         </div>
@@ -575,12 +578,25 @@ async def handle_websocket(req):
                 if data.get('type') == 'config':
                     client_configs[ws] = {'detect_keyboard': data.get('detectKeyboard')}
                 elif data.get('type') == 'diff':
+                    global rebase_triggered, pending_strip_punctuation
                     new_txt = data.get('newText', '')
                     d_cnt, add_txt = compute_diff(synced_text, new_txt)
+                    # 触发增量/清空后，下一次无回退的输入才剪除句首标点
+                    if pending_strip_punctuation and d_cnt == 0 and add_txt:
+                        # 中英文常见标点符号（不含书名号、方括号等成对符号，但保留引号）
+                        punctuations = "，。、；：？！""''·…—～,.;:?!'\""
+                        if add_txt[0] in punctuations:
+                            add_txt = add_txt[1:]  # 只剪除发送内容的标点
+                            print(f'✂️ 去除开头标点')
+                        pending_strip_punctuation = False  # 只处理一次
+                    rebase_triggered = False  # 手机端有新输入，重置增量触发标志
                     if d_cnt: send_backspaces(d_cnt); print(f'⌫ {d_cnt}')
                     if add_txt: type_text(add_txt); print(f'⌨️ {add_txt}')
                     synced_text = new_txt
-                elif data.get('type') == 'reset': synced_text = ""; print('🔄 重置')
+                elif data.get('type') == 'reset':
+                    synced_text = ""
+                    pending_strip_punctuation = True  # 清空后下次输入需要检查标点
+                    print('🔄 重置')
     finally: connected_clients.discard(ws); client_configs.pop(ws, None); print('📱 断开')
     return ws
 
@@ -595,19 +611,24 @@ async def broadcast_rebase():
         except: pass
 
 def reset_synced_text():
-    global synced_text
+    global synced_text, rebase_triggered, pending_strip_punctuation
     if typing_in_progress: return
+    if rebase_triggered: return  # 已触发过增量模式，等待手机端新输入后再允许触发
     if synced_text:
         synced_text = ""
+        rebase_triggered = True  # 标记已触发
+        pending_strip_punctuation = True  # 下次输入需要检查标点
         print('🔄 电脑端输入，触发增量同步')
         if main_loop: asyncio.run_coroutine_threadsafe(broadcast_rebase(), main_loop)
 
 def setup_hotkey():
     global main_loop
     hotkey = CONFIG.get('hotkey', '').strip()
-    IGNORED = {'shift','ctrl','alt','cmd','num_lock','scroll_lock','up','down','left','right','home','end','page_up','page_down','insert','escape','print_screen','pause','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12'}
+    IGNORED = {'shift','ctrl','alt','cmd','num_lock','scroll_lock','home','end','page_up','page_down','insert','escape','print_screen','pause','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12'}
     try:
-        from pynput import keyboard
+        from pynput import keyboard, mouse
+
+        # 键盘监听
         def on_press(key):
             try:
                 k = key.char if hasattr(key, 'char') else key.name
@@ -618,8 +639,20 @@ def setup_hotkey():
                 if k.lower() not in IGNORED and any(c.get('detect_keyboard') for c in client_configs.values()):
                     reset_synced_text()
             except: pass
+
+        # 鼠标监听 - 左键点击触发增量模式
+        def on_click(x, y, button, pressed):
+            try:
+                # 只在左键按下时触发，释放时不触发
+                if button == mouse.Button.left and pressed:
+                    if any(c.get('detect_keyboard') for c in client_configs.values()):
+                        reset_synced_text()
+            except: pass
+
         keyboard.Listener(on_press=on_press).start()
+        mouse.Listener(on_click=on_click).start()
         if hotkey: print(f'🎹 热键: [{hotkey}]')
+        print('🖱️ 鼠标左键监测已启用')
     except: print('⚠️  热键需安装 pynput')
 
 async def main():
