@@ -370,7 +370,7 @@ HTML_PAGE = '''<!DOCTYPE html>
             </div>
             <div class="setting-row">
                 <span>检测电脑键盘</span>
-                <input type="checkbox" id="detectKeyboard" style="width:20px; height:20px;">
+                <input type="checkbox" id="detectKeyboard" style="width:20px; height:20px;" checked>
             </div>
             <button class="modal-btn" onclick="closeModal('settingsModal')">保存设置</button>
         </div>
@@ -378,13 +378,15 @@ HTML_PAGE = '''<!DOCTYPE html>
 
     <div class="modal-overlay" id="helpModal">
         <div class="modal">
-            <h3 style="text-align:center; margin-bottom:15px;">📖 怎么用？</h3>
-            <ul style="padding-left: 20px; line-height: 1.6; font-size: 15px; color: var(--text-main);">
-                <li>点击横线纸，用语音输入法打字。</li>
-                <li>猫猫敲键盘时，字就飞到电脑上了。</li>
-                <li>点 <b>清空</b> 按钮或手机 <b>单击回车/换行</b> 或者电脑<b>F9</b>都可以清空。</li>
-                <li>电脑输入后，启动一次增量同步：先前输入的文本不会再被系统发送，可以理解为软清空。</li>
-                <li>设置里的选项：1.发送延迟——文字多久不变化后发送到电脑（输入法有自动纠错，所以不要太短）2.自动清空——不再有输入后多久执行清空（0禁用）3.检测电脑键盘——勾选时，电脑有输入则启动增量模式。</li>
+            <h3 style="text-align:center; margin-bottom:15px;">📖 使用指南</h3>
+            <ul style="padding-left: 20px; line-height: 1.6; font-size: 14px; color: var(--text-main);">
+                <li style="margin-bottom:8px"><b>基本用法：</b>在横线纸上语音或打字，文字会实时“飞”到电脑光标处。</li>
+                <li style="margin-bottom:8px"><b>如何清空：</b>手机点「清空」、按换行键，或电脑按 <b style="background:#eee;padding:0 4px;border-radius:4px">F9</b> 均可。</li>
+                <li style="margin-bottom:8px"><b>电脑介入（智能续写）：</b><br>当你操作电脑（打字/点击）后，手机会自动“翻篇”，下次输入将作为新段落发送，<b>不会</b>修改你刚才在电脑上编辑的内容。</li>
+                <li><b>设置小贴士：</b><br>
+                    • <b>发送延迟</b>：语音输入建议设为 300ms 以上，让输入法有时间自动纠错。<br>
+                    • <b>检测键盘</b>：开启后才能使用“电脑介入”功能。
+                </li>
             </ul>
             <button class="modal-btn" onclick="closeModal('helpModal')">明白啦</button>
         </div>
