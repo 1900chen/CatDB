@@ -27,14 +27,14 @@ echo.
 
 REM 使用 PyInstaller 打包
 REM --onefile: 打包成单个 exe
-REM --console: 保留控制台以显示 IP 地址和提醒
+REM --noconsole: 保留控制台以显示 IP 地址和提醒
 REM --name: 指定输出文件名
 REM --icon: 使用指定图标
 REM --clean: 清理临时文件
 
 pyinstaller ^
     --onefile ^
-    --console ^
+    --noconsole ^
     --name "豆包喵喵" ^
     --icon "6-phone-cat_icon-icons.com_76682.ico" ^
     --clean ^
